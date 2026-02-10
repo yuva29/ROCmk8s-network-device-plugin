@@ -41,6 +41,11 @@ HELM_CHART_NAME ?= network-device-plugin-charts
 HELM_RELEASE_NAME ?= amd-network-device-plugin
 HELM_RELEASE_NAMESPACE ?= kube-amd-network
 
+DOCKER_BUILDER_TAG := v1.0
+DOCKER_BUILDER_IMAGE := $(DOCKER_REGISTRY)/k8s-network-device-plugin:$(DOCKER_BUILDER_TAG)
+BUILD_BASE_IMG ?= ubuntu:22.04
+CONTAINER_WORKDIR := /k8s-network-device-plugin
+
 # Docker arguments - To pass proxy for Docker invoke it as 'make image HTTP_POXY=http://192.168.0.1:8080'
 DOCKERARGS=
 ifdef HTTP_PROXY
@@ -73,6 +78,21 @@ echo "Downloading $(2)" ;\
 GOBIN=$(PROJECT_DIR)/bin GOFLAGS=-mod=mod go install $(2);\
 }
 endef
+
+.PHONY: default
+default: docker-build-env ## Quick start to build everything from docker shell container
+	@echo "Starting a shell in the Docker build container..."
+	@docker run --rm -it --privileged \
+		--name k8s-network-device-plugin-build \
+		-e "USER_NAME=$(shell whoami)" \
+		-e "USER_UID=$(shell id -u)" \
+		-e "USER_GID=$(shell id -g)" \
+		-v $(CURDIR):/k8s-network-device-plugin \
+		-v $(CURDIR):/home/$(shell whoami)/go/src/github.com/ROCm/k8s-network-device-plugin \
+		-v $(HOME)/.ssh:/home/$(shell whoami)/.ssh \
+		-w $(CONTAINER_WORKDIR) \
+		$(DOCKER_BUILDER_IMAGE) \
+		cd /k8s-network-device-plugin && git config --global --add safe.directory /k8s-network-device-plugin && make image
 
 .PHONY: all
 all: lint build test
@@ -195,6 +215,37 @@ helm-uninstall:
 
 copyrights:
 	GOFLAGS=-mod=mod go run tools/build/copyright/main.go && ${MAKE} fmt && ./tools/build/check-local-files.sh
+
+.PHONY: docker-build-env
+docker-build-env: ## Build the docker shell container.
+	@echo "Building the Docker environment..."
+	@if [ -n $(INSECURE_REGISTRY) ]; then \
+    docker build \
+        -t $(DOCKER_BUILDER_IMAGE) \
+        --build-arg BUILD_BASE_IMG=$(BUILD_BASE_IMG) \
+        --build-arg INSECURE_REGISTRY=$(INSECURE_REGISTRY) \
+        -f Dockerfile.build .; \
+	else \
+		docker build \
+			-t $(DOCKER_BUILDER_IMAGE) \
+			--build-arg BUILD_BASE_IMG=$(BUILD_BASE_IMG) \
+			-f Dockerfile.build .; \
+	fi
+
+.PHONY: docker/shell
+docker/shell: docker-build-env ## Bring up and attach to a shell container that has dev environment configured
+	@echo "Starting a shell in the Docker build container..."
+	@docker run --rm -it --privileged \
+		--name k8s-network-device-plugin-build \
+		-e "USER_NAME=$(shell whoami)" \
+		-e "USER_UID=$(shell id -u)" \
+		-e "USER_GID=$(shell id -g)" \
+		-v $(CURDIR):/k8s-network-device-plugin \
+		-v $(CURDIR):/home/$(shell whoami)/go/src/github.com/ROCm/k8s-network-device-plugin \
+		-v $(HOME)/.ssh:/home/$(shell whoami)/.ssh \
+		-w $(CONTAINER_WORKDIR) \
+		$(DOCKER_BUILDER_IMAGE) \
+		bash -c "cd /k8s-network-device-plugin && git config --global --add safe.directory /k8s-network-device-plugin && bash"
 
 # go-install-tool will 'go install' any package $2 and install it to $1.
 define go-install-tool
