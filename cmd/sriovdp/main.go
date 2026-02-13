@@ -77,7 +77,7 @@ func main() {
 	}
 	glog.Infof("Discovering host devices")
 	if err := rm.discoverHostDevices(); err != nil {
-		glog.Errorf("error discovering host devices%v", err)
+		glog.Errorf("error discovering host devices %v", err)
 		return
 	}
 
@@ -89,7 +89,7 @@ func main() {
 
 	glog.Infof("Starting all servers...")
 	if err := rm.startAllServers(); err != nil {
-		glog.Errorf("error starting resource servers %v\n", err)
+		glog.Errorf("error starting resource servers %v", err)
 		return
 	}
 	glog.Infof("All servers started.")
