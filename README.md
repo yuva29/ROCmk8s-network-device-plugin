@@ -19,6 +19,15 @@ The **AMD Network Device Plugin for Kubernetes** enables Kubernetes clusters to 
 * Allocates network devices based on pod resource requests
 * Prevents over-allocation of scarce network resources
 
+## Compatibility Matrix
+
+The following matrix summarizes supported NICs and the required AINIC firmware / tooling for each container image version.
+
+| AINIC Firmware Version | Image Version | Supported NICs |
+| ---------------------- | ------------- | -------------- |
+| N/A (host `nicctl`)    | `v1.0.0`      | Pollara 400    |
+| `1.117.5-a-56`         | `v1.1.0`      | Pollara 400    |
+
 ## Deployment
 
 The device plugin must run on all nodes equipped with an AMD AI NIC. The recommended deployment method is a **Kubernetes DaemonSet**, which ensures one instance of the plugin runs on each eligible node.
