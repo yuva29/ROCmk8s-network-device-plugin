@@ -1,7 +1,7 @@
 # -- Container image configuration
 image:
   # -- Container image repository
-  repository: docker.io/rocm/k8s-network-device-plugin
+  repository: registry.test.pensando.io:5000/k8s-network-device-plugin
   # -- Container image tag
   tag: v0.0.1
   # -- Container image pull policy
@@ -53,21 +53,21 @@ configMap:
   resourceList:
     - resourceName: "nic"
       resourcePrefix: "amd.com"
-      enableExporterHealthCheck: true
+      enableExporterHealthCheck: false
       disableDeviceConfig: false
+      excludeTopology: false
       selectors:
         vendors: ["1dd8"]
         devices: ["1002"]
         drivers: ["ionic"]
-        excludeTopology: true
         isRdma: true
     - resourceName: "vnic"
       resourcePrefix: "amd.com"
-      enableExporterHealthCheck: true
+      enableExporterHealthCheck: false
       disableDeviceConfig: false
+      excludeTopology: false
       selectors:
         vendors: ["1dd8"]
         devices: ["1003"]
         drivers: ["ionic"]
-        excludeTopology: true
         isRdma: true

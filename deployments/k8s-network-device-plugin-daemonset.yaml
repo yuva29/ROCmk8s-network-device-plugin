@@ -23,22 +23,22 @@ data:
       "resourceList": [{
         "resourceName": "nic",
         "resourcePrefix": "amd.com",
+        "excludeTopology": false,
         "selectors": {
           "vendors": ["1dd8"],
           "devices": ["1002"],
           "drivers": ["ionic"],
-          "excludeTopology": true,
           "isRdma": true
         }
       },
       {
         "resourceName": "vnic",
         "resourcePrefix": "amd.com",
+        "excludeTopology": false,
         "selectors": {
           "vendors": ["1dd8"],
           "devices": ["1003"],
           "drivers": ["ionic"],
-          "excludeTopology": true,
           "isRdma": true
         }
       }]
