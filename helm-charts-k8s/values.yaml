@@ -1,7 +1,7 @@
 # -- Container image configuration
 image:
   # -- Container image repository
-  repository: registry.test.pensando.io:5000/k8s-network-device-plugin
+  repository: docker.io/rocm/k8s-network-device-plugin
   # -- Container image tag
   tag: v0.0.1
   # -- Container image pull policy
