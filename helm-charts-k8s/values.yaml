@@ -3,7 +3,7 @@ image:
   # -- Container image repository
   repository: docker.io/rocm/k8s-network-device-plugin
   # -- Container image tag
-  tag: v0.0.1
+  tag: v1.1.0
   # -- Container image pull policy
   pullPolicy: IfNotPresent
   # -- initContainer image

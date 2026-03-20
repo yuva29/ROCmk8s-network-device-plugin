@@ -1,6 +1,6 @@
 # network-device-plugin-charts
 
-![Version: v0.0.1](https://img.shields.io/badge/Version-v0.0.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v0.0.1](https://img.shields.io/badge/AppVersion-v0.0.1-informational?style=flat-square)
+![Version: v1.1.0](https://img.shields.io/badge/Version-v1.1.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.1.0](https://img.shields.io/badge/AppVersion-v1.1.0-informational?style=flat-square)
 
 A Helm chart for AMD Network Device Plugin
 
@@ -28,11 +28,11 @@ Kubernetes: `>= 1.29.0-0`
 |-----|------|---------|-------------|
 | annotations | object | `{}` | Additional annotations to add to the DaemonSet pods |
 | configMap | object | `{"resourceList":[{"disableDeviceConfig":false,"enableExporterHealthCheck":false,"excludeTopology":false,"resourceName":"nic","resourcePrefix":"amd.com","selectors":{"devices":["1002"],"drivers":["ionic"],"isRdma":true,"vendors":["1dd8"]}},{"disableDeviceConfig":false,"enableExporterHealthCheck":false,"excludeTopology":false,"resourceName":"vnic","resourcePrefix":"amd.com","selectors":{"devices":["1003"],"drivers":["ionic"],"isRdma":true,"vendors":["1dd8"]}}]}` | List of configmap objects which provide info on device resources |
-| image | object | `{"initContainerImage":"busybox:1.36","pullPolicy":"IfNotPresent","repository":"docker.io/rocm/k8s-network-device-plugin","tag":"v0.0.1"}` | Container image configuration |
+| image | object | `{"initContainerImage":"busybox:1.36","pullPolicy":"IfNotPresent","repository":"docker.io/rocm/k8s-network-device-plugin","tag":"v1.1.0"}` | Container image configuration |
 | image.initContainerImage | string | `"busybox:1.36"` | initContainer image |
 | image.pullPolicy | string | `"IfNotPresent"` | Container image pull policy |
 | image.repository | string | `"docker.io/rocm/k8s-network-device-plugin"` | Container image repository |
-| image.tag | string | `"v0.0.1"` | Container image tag |
+| image.tag | string | `"v1.1.0"` | Container image tag |
 | imagePullSecrets | list | `[]` | Image pull secrets for private registries |
 | nodeSelector | object | `{}` | Node selector to constrain pods to specific nodes |
 | resources | object | `{}` | Resource limits and requests for the containers |
