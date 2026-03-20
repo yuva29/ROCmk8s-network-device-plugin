@@ -131,17 +131,18 @@ func (dc *DevConfigClient) setupDevice(deviceID string) error {
 	}
 
 	glog.Infof("configuring devID %v, intf UUID %v", deviceID, intfUUID)
-	cmd := fmt.Sprintf("nicctl clear rdma internal queue-pair --lif %s", intfUUID)
-	cmdResp, err := dc.execWithContext(cmd, configClientTimeoutInSecs)
+	qpClearCmd := fmt.Sprintf("nicctl clear rdma internal queue-pair --lif %s", intfUUID)
+	cmdResp, err := dc.execWithContext(qpClearCmd, configClientTimeoutInSecs)
 	if err != nil {
-		err = fmt.Errorf("failed exec of cfg cmd %s: %v", cmd, err)
+		err = fmt.Errorf("failed to execute QP clear command: %v", err)
 		glog.Errorf("%v", err)
+		glog.Infof("command: %s, failed with response: %v", qpClearCmd, string(cmdResp))
 		return err
 	}
 
 	matchStr := []byte(": Successful")
 	respStr := strings.Trim(string(cmdResp), "\r\n")
-	glog.Infof("dev config cmd: %v", cmd)
+	glog.Infof("dev config cmd: %v", qpClearCmd)
 	glog.Infof("dev config resp: %v", respStr)
 	if !bytes.Contains(cmdResp, matchStr) {
 		err := fmt.Errorf("config failure for devID %v intfUUID %v", deviceID, intfUUID)
@@ -203,10 +204,12 @@ func (dc *DevConfigClient) updateDevIDmap() (map[string]string, error) {
 		glog.Infof("updating DevIDmap \n")
 	}
 
-	cmdResp, err := dc.execWithContext("nicctl show card device -j", configClientTimeoutInSecs)
+	showCardDeviceCmd := "nicctl show card device -j"
+	cmdResp, err := dc.execWithContext(showCardDeviceCmd, configClientTimeoutInSecs)
 	if err != nil {
 		err = fmt.Errorf("failed to get device HW data: %v", err)
 		glog.Errorf("%v", err)
+		glog.Infof("command: %s, failed with response: %v", showCardDeviceCmd, string(cmdResp))
 		return devMap, err
 	}
 	var resp Response

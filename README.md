@@ -19,7 +19,52 @@ The **AMD Network Device Plugin for Kubernetes** enables Kubernetes clusters to 
 * Allocates network devices based on pod resource requests
 * Prevents over-allocation of scarce network resources
 
+## Compatibility Matrix
+
+The following matrix summarizes supported NICs and the required AINIC firmware / tooling for each container image version.
+
+| AINIC Firmware Version | Image Version | Supported NICs |
+| ---------------------- | ------------- | -------------- |
+| N/A (host `nicctl`)    | `v1.0.0`      | Pollara 400    |
+| `1.117.5-a-56`         | `v1.1.0`      | Pollara 400    |
+
 ## Deployment
+
+### Prerequisites
+
+A compatible CNI meta-plugin installation is required for the Device Plugin to obtain the allocated PF/VF device ID in order to configure it.
+
+#### Install Multus
+
+Please refer to the [Multus Quickstart Installation Guide](https://github.com/k8snetworkplumbingwg/multus-cni/blob/master/docs/quickstart.md) to install Multus.
+
+#### Network Object CRDs
+
+Multus uses Custom Resource Definitions (CRDs) for defining additional network attachments. These network attachment CRDs follow the standards defined by the [K8s Network Plumbing Working Group (NPWG)](https://github.com/k8snetworkplumbingwg). Please refer to the [Multus documentation](https://github.com/k8snetworkplumbingwg/multus-cni/blob/master/docs/how-to-use.md) for more information.
+
+#### Create Network Attachment Definition (NAD)
+
+Create the NetworkAttachmentDefinition in the same namespace as the workloads that will use it (replace `<workload-namespace>` with your target namespace):
+
+```bash
+kubectl create -n <workload-namespace> -f deployments/host-device-nad.yaml
+```
+
+Please ensure that the CNI plugin specified in the NAD (`host-device` in this case) is installed and available on the cluster nodes. The `host-device` CNI plugin is responsible for configuring the allocated network devices within the pod's network namespace.
+
+Here is a quick command that you can run on the cluster nodes to install the CNI plugins:
+
+```bash
+docker run -d --name cni-plugins -v /opt/cni/bin:/host/opt/cni/bin docker.io/rocm/k8s-cni-plugins:v1.1.0
+```
+
+To stop and remove the container:
+
+```bash
+docker stop cni-plugins && docker rm cni-plugins
+```
+
+### Deploy the Device Plugin
 
 The device plugin must run on all nodes equipped with an AMD AI NIC. The recommended deployment method is a **Kubernetes DaemonSet**, which ensures one instance of the plugin runs on each eligible node.
 
@@ -61,11 +106,11 @@ The configuration knob `enableExporterHealthCheck` enables or disables health ch
       "resourceName": "nic",
       "resourcePrefix": "amd.com",
       "enableExporterHealthCheck": true,
+      "excludeTopology": false,
       "selectors": {
         "vendors": ["1dd8"],
         "devices": ["1002"],
         "drivers": ["ionic"],
-        "excludeTopology": true,
         "isRdma": true
       }
     }

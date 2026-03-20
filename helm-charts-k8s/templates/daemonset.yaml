@@ -47,25 +47,49 @@ spec:
       terminationGracePeriodSeconds: 30
       initContainers:
         - name: driver-init
+          image: {{ .Values.image.initContainerImage }}
+          imagePullPolicy: IfNotPresent
           command: ["sh", "-c"]
           args:
             - |
-              while [ ! -d /sys/class/infiniband ] || [ ! -d /sys/class/infiniband_verbs ] || [ ! -d /sys/module/ionic/drivers ] || ! ls /host/etc/cni/net.d/*multus*.conf >/dev/null 2>&1; do
-                echo "Waiting for AMD ionic driver and Multus CNI config to be ready"
+              # Detect if running on VM or bare metal
+              if grep -qi hypervisor /proc/cpuinfo; then
+                IS_VM=true
+                echo "Running on VM"
+              else
+                IS_VM=false
+                echo "Running on bare metal"
+              fi
+
+              # Check if required drivers are ready based on environment
+              drivers_not_ready() {
+                if [ "$IS_VM" = "true" ]; then
+                  [ ! -d /sys/class/infiniband ] || \
+                  [ ! -d /sys/class/infiniband_verbs ] || \
+                  [ ! -d /sys/module/ionic/drivers ]
+                else
+                  [ ! -d /sys/class/infiniband ] || \
+                  [ ! -d /sys/class/infiniband_verbs ] || \
+                  [ ! -d /sys/module/ionic/drivers ] || \
+                  ([ ! -d /sys/module/tawk_ipc/drivers ] && [ ! -d /sys/module/pds_core/drivers ])
+                fi
+              }
+
+              # Wait for all required drivers to be loaded
+              while drivers_not_ready; do
+                echo "Waiting for drivers to be loaded..."
                 sleep 2
               done
-          image: {{ .Values.image.initContainerImage }}
-          imagePullPolicy: IfNotPresent
+              echo "All required drivers are ready"
           resources: {}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: File
           volumeMounts:
-          - mountPath: /sys
-            name: sys
-          - mountPath: /host/etc/cni/
-            name: cni
+            - name: sys
+              mountPath: /sys
+              readOnly: true
       containers:
         - name: {{ .Release.Name }}-device-plugin
           image: {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}
@@ -125,8 +149,4 @@ spec:
             path: /sys
             type: Directory
           name: sys
-        - hostPath:
-            path: /etc/cni
-            type: Directory
-          name: cni
 
