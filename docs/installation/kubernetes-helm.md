@@ -1,0 +1,112 @@
+# Kubernetes (Helm) installation
+
+This page explains how to install the AMD Network Device Plugin for Kubernetes using Helm.
+
+## System requirements
+
+- Kubernetes cluster v1.29.0 or later
+- Helm v3.2.0 or later
+- `kubectl` command-line tool configured with access to the cluster
+- Nodes equipped with AMD AINICs
+- AMD AINIC drivers, `nicctl` tool installed on the nodes
+- A compatible CNI meta-plugin that supports additional network attachments (for example, Multus) installed and configured in the cluster
+- The `NetworkAttachmentDefinition` custom resource definitions (CRDs) and associated RBAC available in the cluster
+
+Refer to the [README](../../README.md) for more details on these runtime prerequisites and example configurations.
+
+## Installation
+
+### Download the chart archive
+
+Download the Network Device Plugin Helm chart archive from the release artifacts.
+
+### Install the Helm chart
+
+```bash
+helm install amd-network-device-plugin <path-to-chart-archive>.tgz \
+  --namespace kube-amd-network \
+  --create-namespace
+```
+
+### Verify the installation
+
+Check that the DaemonSet pods are running on the expected nodes:
+
+```bash
+kubectl get pods -l app.kubernetes.io/name=device-plugin -n kube-amd-network
+```
+
+Once the pods are running, verify that node resources have been published:
+
+```bash
+kubectl get node <node-name> -o jsonpath='{.status.capacity}' | grep nic
+```
+
+Or inspect a specific node:
+
+```bash
+kubectl describe node <node-name>
+```
+
+## Configuration
+
+To override default values, pass `--set key=value` on the command line or supply a custom values file via `-f my-values.yaml`. Refer to [`helm-charts-k8s/README.md`](../../helm-charts-k8s/README.md) for the full list of configurable values.
+
+> **Note:** Ensure the Device Plugin image (`image.tag`) matches the AINIC firmware version installed on your nodes. Refer to the [Compatibility Matrix](../../README.md#compatibility-matrix) in the main README for the correct image version to use and configure the correct `image.tag` value in the values file.
+
+### Example: custom tolerations
+
+To schedule the Device Plugin DaemonSet pods on nodes with a custom taint, add the required toleration:
+
+```bash
+helm install amd-network-device-plugin <path-to-chart-archive>.tgz \
+  --namespace kube-amd-network \
+  --create-namespace \
+  --set tolerations[0].key=example.com/foo \
+  --set tolerations[0].operator=Exists \
+  --set tolerations[0].effect=NoSchedule
+```
+
+Or via a values file:
+
+```yaml
+tolerations:
+  - key: example.com/foo
+    operator: Exists
+    effect: NoSchedule
+```
+
+```bash
+helm install amd-network-device-plugin <path-to-chart-archive>.tgz \
+  --namespace kube-amd-network \
+  --create-namespace \
+  -f my-values.yaml
+```
+
+### Debugging
+
+Use the `--debug` flag with `helm install` or `helm template` to see the fully rendered Kubernetes manifests with all values applied. This is useful for verifying that overrides are taking effect before deploying:
+
+```bash
+helm template amd-network-device-plugin <path-to-chart-archive>.tgz \
+  --debug \
+  -f my-values.yaml
+```
+
+Use `--dry-run` with `helm install` to simulate the installation without applying any resources to the cluster. Unlike `helm template`, a dry run communicates with the Kubernetes API server to validate the manifests against the cluster:
+
+```bash
+helm install amd-network-device-plugin <path-to-chart-archive>.tgz \
+  --namespace kube-amd-network \
+  --create-namespace \
+  --dry-run \
+  -f my-values.yaml
+```
+
+## Uninstallation
+
+```bash
+helm uninstall amd-network-device-plugin -n kube-amd-network
+```
+
+This removes all Kubernetes resources created by the chart, including the DaemonSet, ConfigMap, RBAC rules, and ServiceAccount. After the device plugin pods are removed and the plugin disconnects from the kubelet, the kubelet will eventually stop advertising the corresponding node resources.
