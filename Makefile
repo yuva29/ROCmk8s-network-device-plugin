@@ -44,8 +44,8 @@ HELM_OUTPUT_FILE_PREFIX ?= k8s-network-device-plugin-helm-k8s
 HELM_OUTPUT_FILE_NAME ?= $(HELM_OUTPUT_FILE_PREFIX)-$(PROJECT_VERSION).tgz
 CHART_DEST ?= $(HELM_CHART_DIR)/$(HELM_OUTPUT_FILE_NAME)
 
-DOCKER_BUILDER_TAG := v1.0
-DOCKER_BUILDER_IMAGE := $(DOCKER_REGISTRY)/k8s-network-device-plugin:$(DOCKER_BUILDER_TAG)
+DOCKER_BUILDER_TAG := v1.2
+DOCKER_BUILDER_IMAGE := $(DOCKER_REGISTRY)/k8s-network-device-plugin-build:$(DOCKER_BUILDER_TAG)
 BUILD_BASE_IMG ?= ubuntu:22.04
 CONTAINER_WORKDIR := /k8s-network-device-plugin
 
@@ -104,6 +104,15 @@ all: lint build test
 fmt: ## Run go fmt against code.
 	go fmt ./...
 
+.PHONY: mod
+mod: ## Run go mod tidy and go mod edit to set up the go mod packages.
+	@echo "setting up go mod packages"
+	@go mod tidy
+	#CVE-2026-33186
+	@go mod edit -replace google.golang.org/grpc@v1.69.2=google.golang.org/grpc@v1.79.3
+	@go mod tidy
+	@go mod vendor
+
 .PHONY: create-dirs
 create-dirs: $(DIRS)
 
@@ -117,11 +126,19 @@ build: | $(BUILDDIR) ; $(info Building $(BINARY_NAME)...) @ ## Build SR-IOV Netw
 
 GOLANGCI_LINT = $(BINDIR)/golangci-lint
 GOLANGCI_LINT_VERSION ?= v1.63.4
-$(GOLANGCI_LINT): | $(BINDIR) ; $(info  installing golangci-lint...)
-	$Q[ -f $(GOLANGCI_LINT) ] || { \
-	set -e ;\
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell dirname $(GOLANGCI_LINT)) $(GOLANGCI_LINT_VERSION) ;\
-	}
+.PHONY: golangci-lint
+golangci-lint: ## Download golangci-lint locally if necessary.
+	$Q $(call go-get-tool,$(GOLANGCI_LINT),github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION))
+
+GOFILES_NO_VENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
+.PHONY: lint
+lint: golangci-lint ; $(info  Running golangci-lint linter...) @ ## Run golangci-lint linter
+	$Q if [ `gofmt -l $(GOFILES_NO_VENDOR) | wc -l` -ne 0 ]; then \
+		echo There are some malformed files, please make sure to run \'make fmt\'; \
+		gofmt -l $(GOFILES_NO_VENDOR); \
+		exit 1; \
+	fi
+	$Q $(GOLANGCI_LINT) run -v --timeout 5m0s
 
 MOCKERY = $(BINDIR)/mockery
 $(MOCKERY): | $(BINDIR) ; $(info  installing mockery...)
@@ -140,9 +157,6 @@ test: ; $(info  running $(NAME:%=% )tests...) @ ## Run tests
 test-coverage: | $(COVERAGE_DIR) ; $(info  Running coverage tests...) @ ## Run coverage tests
 	$Q go test -v -timeout 30s -cover -covermode=$(COVERAGE_MODE) -coverprofile=$(COVERAGE_PROFILE) $(PKGS)
 
-.PHONY: lint
-lint: $(GOLANGCI_LINT) ; $(info  Running golangci-lint linter...) @ ## Run golangci-lint linter
-	$Q $(GOLANGCI_LINT) run
 
 .PHONY: deps-update
 deps-update: ; $(info  Updating dependencies...) @ ## Update dependencies
