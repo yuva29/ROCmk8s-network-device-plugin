@@ -1,6 +1,6 @@
 ARG AINIC_VER=1.117.5-a-56
 # --- Build stage ---
-FROM registry.access.redhat.com/ubi9/go-toolset:1.24 AS builder
+FROM registry.access.redhat.com/ubi9/go-toolset:1.25 AS builder
 
 USER root
 COPY . /usr/src/sriov-network-device-plugin
