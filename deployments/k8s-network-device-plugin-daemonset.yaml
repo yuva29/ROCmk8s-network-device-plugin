@@ -132,5 +132,3 @@ spec:
         hostPath:
           path: /sys
           type: Directory
-
-          
