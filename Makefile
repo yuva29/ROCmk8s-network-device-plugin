@@ -9,7 +9,7 @@ ifneq ("$(wildcard dev.env)","")
     include dev.env
 endif
 
-PROJECT_VERSION ?= v1.1.0
+PROJECT_VERSION ?= v1.2.0
 
 export GOPATH?=$(shell go env GOPATH)
 BINDIR=$(CURDIR)/bin
