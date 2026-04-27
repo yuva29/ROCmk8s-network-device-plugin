@@ -13,5 +13,6 @@
 /test/coverage*
 
 # Sphinx documentation
-_build/
-.venv/
+docs/_build/
+docs/venv/
+**/__pycache__/
